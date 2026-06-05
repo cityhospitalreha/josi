@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>助詞トレーニング</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#F7F5F2;--white:#FFF;--ink:#1C1C1E;--ink2:#3A3A3C;
+  --muted:#8E8E93;--line:#D1CEC9;
+  --accent:#1A56A0;--accent-lt:#EBF2FC;
+  --green:#1C7C2E;--green-lt:#E8F5EB;
+  --red:#B91C1C;--red-lt:#FEF2F2;
+  --shadow:0 2px 16px rgba(0,0,0,.07);--r:16px;
+}
+body{
+  min-height:100vh;background:var(--bg);
+  font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic UI","Meiryo",sans-serif;
+  color:var(--ink);display:flex;flex-direction:column;align-items:center;
+  padding:0 1rem 4rem;
+}
+.screen{width:100%;max-width:500px;display:none;flex-direction:column;align-items:center;}
+.screen.active{display:flex;}
+
+/* ── START ── */
+#start-screen{padding-top:2.5rem;gap:0;}
+.start-title{font-size:1.9rem;font-weight:700;letter-spacing:-.02em;margin-bottom:.15rem;}
+.start-sub{font-size:.72rem;color:var(--muted);letter-spacing:.1em;margin-bottom:2rem;}
+.sec-label{width:100%;font-size:.68rem;font-weight:700;letter-spacing:.12em;color:var(--muted);margin-bottom:.5rem;text-transform:uppercase;}
+.mode-grid{width:100%;display:flex;flex-direction:column;gap:8px;margin-bottom:2rem;}
+.mode-btn{
+  width:100%;background:var(--white);border:1.5px solid var(--line);border-radius:14px;
+  padding:14px 18px;font-family:inherit;font-size:14px;font-weight:500;
+  color:var(--ink2);cursor:pointer;text-align:left;
+  display:flex;align-items:center;justify-content:space-between;
+  transition:border-color .15s,background .15s;
+}
+.mode-btn:hover{border-color:var(--accent);background:var(--accent-lt);}
+.mode-btn.selected{border-color:var(--accent);background:var(--accent-lt);color:var(--accent);font-weight:700;}
+.mode-btn .badge{
+  font-size:.65rem;font-weight:600;letter-spacing:.06em;padding:3px 8px;
+  border-radius:99px;background:var(--line);color:var(--ink2);white-space:nowrap;
+}
+.mode-btn.selected .badge{background:var(--accent);color:var(--white);}
+.start-btn{
+  width:100%;padding:17px;background:var(--accent);color:var(--white);
+  border:none;border-radius:14px;font-family:inherit;font-size:16px;
+  font-weight:700;cursor:pointer;transition:opacity .15s,transform .1s;
+}
+.start-btn:hover{opacity:.88;}
+.start-btn:active{transform:scale(.98);}
+
+/* ── TOPBAR ── */
+.topbar{width:100%;display:flex;align-items:center;gap:10px;margin-bottom:1.3rem;padding-top:1.4rem;}
+.t-count{font-size:12px;color:var(--muted);white-space:nowrap;min-width:36px;}
+.t-prog{flex:1;height:4px;background:var(--line);border-radius:2px;overflow:hidden;}
+.t-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .4s cubic-bezier(.4,0,.2,1);width:0%;}
+.t-score{font-size:12px;color:var(--muted);white-space:nowrap;min-width:28px;text-align:right;}
+
+/* ── Q CARD ── */
+#q-card{
+  width:100%;background:var(--white);border-radius:var(--r);box-shadow:var(--shadow);
+  padding:1.75rem 1.5rem;margin-bottom:1.1rem;min-height:100px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.5rem;
+}
+#sentence-display{font-size:1.3rem;font-weight:600;line-height:2.2;text-align:center;letter-spacing:.04em;}
+.bl{
+  display:inline-flex;align-items:flex-end;justify-content:center;
+  min-width:2rem;height:1.5rem;border-bottom:3px solid var(--line);
+  margin:0 1px;vertical-align:middle;color:transparent;position:relative;transition:border-color .2s;
+}
+.bl .num{position:absolute;top:-1.1rem;left:50%;transform:translateX(-50%);font-size:.58rem;color:var(--muted);font-weight:600;}
+.bl.active{border-color:var(--accent);animation:pulse .9s ease-in-out infinite alternate;}
+.bl.filled{border-color:var(--accent);color:var(--accent);min-width:auto;padding:0 4px;font-weight:700;font-size:.95rem;}
+@keyframes pulse{from{border-color:var(--accent);}to{border-color:#7CB3E8;}}
+#cur-label{font-size:.72rem;color:var(--muted);min-height:1rem;}
+
+/* ── CHOICES ── */
+#choices{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:.75rem;}
+.c-btn{
+  background:var(--white);border:1.5px solid var(--line);border-radius:14px;
+  padding:20px 10px;font-family:inherit;font-size:1.3rem;font-weight:600;
+  color:var(--ink);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.05);
+  transition:border-color .12s,background .12s,transform .1s;
+}
+.c-btn:hover:not(:disabled){border-color:var(--accent);background:var(--accent-lt);transform:translateY(-1px);}
+.c-btn:active:not(:disabled){transform:scale(.97);}
+.c-btn.correct{background:var(--green-lt);border-color:var(--green);color:var(--green);}
+.c-btn.wrong{background:var(--red-lt);border-color:var(--red);color:var(--red);}
+.c-btn:disabled{cursor:default;}
+
+/* ── FEEDBACK ── */
+#fb-card{
+  width:100%;border-radius:var(--r);box-shadow:var(--shadow);
+  padding:1.75rem 1.5rem;margin-bottom:1.25rem;
+  display:flex;flex-direction:column;align-items:center;gap:.85rem;
+}
+#fb-card.ok{background:var(--green-lt);border:1.5px solid var(--green);}
+#fb-card.ng{background:var(--red-lt);border:1.5px solid var(--red);}
+#fb-icon{font-size:2.2rem;line-height:1;}
+#fb-label{font-size:.95rem;font-weight:700;}
+#fb-card.ok #fb-label{color:var(--green);}
+#fb-card.ng #fb-label{color:var(--red);}
+#fb-sentence{font-size:1.2rem;font-weight:600;text-align:center;line-height:2.2;letter-spacing:.04em;}
+.pa{color:var(--accent);font-weight:700;border-bottom:2px solid var(--accent);}
+#fb-explain{font-size:.82rem;color:var(--ink2);text-align:center;line-height:1.75;}
+#next-btn{
+  width:100%;padding:17px;background:var(--accent);color:var(--white);
+  border:none;border-radius:14px;font-family:inherit;font-size:16px;
+  font-weight:700;cursor:pointer;transition:opacity .15s,transform .1s;
+}
+#next-btn:hover{opacity:.88;}
+#next-btn:active{transform:scale(.98);}
+
+/* ── RESULT ── */
+#result-screen{padding-top:3rem;gap:.6rem;}
+#r-card{
+  width:100%;background:var(--white);border-radius:var(--r);box-shadow:var(--shadow);
+  padding:2.5rem 2rem;text-align:center;
+  display:flex;flex-direction:column;align-items:center;gap:.35rem;margin-bottom:.75rem;
+}
+#r-icon{font-size:3.75rem;margin-bottom:.25rem;}
+#r-score{font-size:3.5rem;font-weight:700;color:var(--accent);line-height:1;}
+#r-of{font-size:.82rem;color:var(--muted);margin-bottom:.3rem;}
+#r-msg{font-size:.92rem;color:var(--ink2);}
+.r-btn{width:100%;max-width:500px;padding:15px;border:none;border-radius:14px;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;transition:opacity .15s;}
+.r-btn.solid{background:var(--accent);color:var(--white);}
+.r-btn.outline{background:transparent;color:var(--ink);border:1.5px solid var(--line);}
+.r-btn:hover{opacity:.85;}
+</style>
+</head>
+<body>
+
+<div class="screen active" id="start-screen">
+  <div class="start-title">助詞トレーニング</div>
+  <div class="start-sub">PARTICLE TRAINING</div>
+  <div class="sec-label">モードを選ぶ</div>
+  <div class="mode-grid">
+    <button class="mode-btn selected" data-mode="n2">
+      <span>ふつう語順　２文節</span>
+      <span class="badge">やさしい</span>
+    </button>
+    <button class="mode-btn" data-mode="n3">
+      <span>ふつう語順　３文節</span>
+      <span class="badge">ふつう</span>
+    </button>
+    <button class="mode-btn" data-mode="n4">
+      <span>ふつう語順　４文節</span>
+      <span class="badge">難しい</span>
+    </button>
+    <button class="mode-btn" data-mode="s3">
+      <span>かき混ぜ語順　３文節</span>
+      <span class="badge">ふつう＋</span>
+    </button>
+
+  </div>
+  <button class="start-btn" onclick="startQuiz()">はじめる</button>
+</div>
+
+<div class="screen" id="quiz-screen">
+  <div class="topbar">
+    <span class="t-count" id="q-count">1 / 10</span>
+    <div class="t-prog"><div class="t-fill" id="prog-fill"></div></div>
+    <span class="t-score" id="score-disp">0</span>
+  </div>
+  <div id="q-card">
+    <div id="sentence-display"></div>
+    <div id="cur-label"></div>
+  </div>
+  <div id="choices"></div>
+</div>
+
+<div class="screen" id="fb-screen">
+  <div class="topbar">
+    <span class="t-count" id="fb-count">1 / 10</span>
+    <div class="t-prog"><div class="t-fill" id="fb-prog-fill"></div></div>
+    <span class="t-score" id="fb-score">0</span>
+  </div>
+  <div id="fb-card">
+    <div id="fb-icon">○</div>
+    <div id="fb-label">正解</div>
+    <div id="fb-sentence"></div>
+    <div id="fb-explain"></div>
+  </div>
+  <button id="next-btn" onclick="nextQ()">次へ →</button>
+</div>
+
+<div class="screen" id="result-screen">
+  <div id="r-card">
+    <div id="r-icon">🏅</div>
+    <div id="r-score">0</div>
+    <div id="r-of">/ 10</div>
+    <div id="r-msg"></div>
+  </div>
+  <button class="r-btn solid" style="margin-bottom:.6rem;" onclick="retryQuiz()">もう一度</button>
+  <button class="r-btn outline" onclick="goStart()">モードを変える</button>
+</div>
+
+<script>
+// ============================================================
+// データ形式
+//
+// 1空欄（2文節）:
+//   { text:'犬___吠えた。', answer:'が', choices:[4択], explain:'解説' }
+//
+// 複数空欄（3・4文節、かき混ぜ）:
+//   { text:'母___市場___野菜___買った。',
+//     blanks:[{answer, choices, explain}, ...] }
+//
+// ※ text中の___ の数 = blanks配列の長さ と必ず一致
+// ============================================================
+
+// ── N2: ふつう語順 2文節 ──────────────────────────────
+const QB_N2 = [
+  // ── が ──
+  {text:'犬___吠えた。',answer:'が',choices:['が','を','に','で'],explain:'動作の主体には「が」をつけます。'},
+  {text:'赤ちゃん___泣いた。',answer:'が',choices:['が','を','に','で'],explain:'動作の主体には「が」をつけます。'},
+  {text:'電話___鳴った。',answer:'が',choices:['が','を','に','で'],explain:'変化・発生の主体には「が」をつけます。'},
+  {text:'空___暗くなった。',answer:'が',choices:['が','を','に','で'],explain:'変化の主体には「が」をつけます。'},
+  {text:'財布___見つかった。',answer:'が',choices:['が','を','に','で'],explain:'発見・発生の主体には「が」をつけます。'},
+  {text:'桜___咲いた。',answer:'が',choices:['が','を','に','で'],explain:'変化の主体には「が」をつけます。'},
+  {text:'子ども___転んだ。',answer:'が',choices:['が','は','を','に'],explain:'動作の主体には「が」をつけます。'},
+  {text:'窓___割れた。',answer:'が',choices:['が','を','に','で'],explain:'変化の主体には「が」をつけます。'},
+  // ── を ──
+  {text:'新聞___読んだ。',answer:'を',choices:['を','が','に','で'],explain:'「読む」の対象には「を」をつけます。'},
+  {text:'コーヒー___飲んだ。',answer:'を',choices:['を','が','に','で'],explain:'「飲む」の対象には「を」をつけます。'},
+  {text:'パン___焼いた。',answer:'を',choices:['を','が','に','で'],explain:'「焼く」の対象には「を」をつけます。'},
+  {text:'服___洗った。',answer:'を',choices:['を','が','に','で'],explain:'「洗う」の対象には「を」をつけます。'},
+  {text:'写真___撮った。',answer:'を',choices:['を','が','に','で'],explain:'「撮る」の対象には「を」をつけます。'},
+  {text:'ドア___閉めた。',answer:'を',choices:['を','が','に','で'],explain:'「閉める」の対象には「を」をつけます。'},
+  {text:'川___泳いだ。',answer:'を',choices:['を','で','に','が'],explain:'広い空間を移動するときは「を」をつけます。'},
+  {text:'階段___上った。',answer:'を',choices:['を','で','に','が'],explain:'移動の経路には「を」をつけます。'},
+  {text:'橋___渡った。',answer:'を',choices:['を','で','に','が'],explain:'通過する経路には「を」をつけます。'},
+  {text:'廊下___走ってはいけない。',answer:'を',choices:['を','で','に','が'],explain:'移動する空間・経路には「を」をつけます。'},
+  // ── に ──
+  {text:'椅子___腰かけた。',answer:'に',choices:['に','で','を','が'],explain:'「腰かける」の着地点には「に」をつけます。'},
+  {text:'大阪___引っ越した。',answer:'に',choices:['に','で','を','が'],explain:'移動の目的地には「に」をつけます。'},
+  {text:'電車___乗り遅れた。',answer:'に',choices:['に','で','を','が'],explain:'乗り物への動作には「に」をつけます。'},
+  {text:'上司___怒られた。',answer:'に',choices:['に','と','で','を'],explain:'働きかけを受ける相手には「に」をつけます。'},
+  {text:'母___電話した。',answer:'に',choices:['に','と','で','を'],explain:'「電話する」の相手には「に」をつけます。'},
+  {text:'棚___本をしまった。',answer:'に',choices:['に','で','を','が'],explain:'しまう先の場所には「に」をつけます。'},
+  {text:'姉___似ている。',answer:'に',choices:['に','と','で','が'],explain:'「似る」の対象には「に」をつけます。'},
+  {text:'東京___出張した。',answer:'に',choices:['に','で','を','が'],explain:'移動の目的地には「に」をつけます。'},
+  // ── で ──
+  {text:'ハサミ___紙を切った。',answer:'で',choices:['で','に','を','が'],explain:'道具には「で」をつけます。'},
+  {text:'自転車___来た。',answer:'で',choices:['で','に','を','が'],explain:'交通手段には「で」をつけます。'},
+  {text:'英語___話した。',answer:'で',choices:['で','に','を','が'],explain:'言語（手段）には「で」をつけます。'},
+  {text:'熱___学校を休んだ。',answer:'で',choices:['で','が','に','を'],explain:'理由・原因には「で」をつけます。'},
+  {text:'スマホ___調べた。',answer:'で',choices:['で','に','を','が'],explain:'手段・道具には「で」をつけます。'},
+  {text:'公園___散歩した。',answer:'で',choices:['で','に','を','が'],explain:'動作の場所には「で」をつけます。'},
+  {text:'居酒屋___飲んだ。',answer:'で',choices:['で','に','を','が'],explain:'動作の場所には「で」をつけます。'},
+  {text:'図書館___勉強した。',answer:'で',choices:['で','に','を','が'],explain:'動作の場所には「で」をつけます。'},
+  // ── は ──
+  {text:'今日___曇りだ。',answer:'は',choices:['は','が','を','に'],explain:'話題（時）には「は」をつけます。'},
+  {text:'この映画___面白い。',answer:'は',choices:['は','が','を','で'],explain:'話題には「は」をつけます。'},
+  // ── の ──
+  {text:'父___車だ。',answer:'の',choices:['の','が','に','で'],explain:'所有を表すには「の」をつけます。'},
+  {text:'近所___猫だ。',answer:'の',choices:['の','に','が','で'],explain:'所属・所在を表すには「の」をつけます。'},
+  // ── から ──
+  {text:'家___出発した。',answer:'から',choices:['から','で','を','が'],explain:'出発点には「から」をつけます。'},
+  {text:'先輩___アドバイスをもらった。',answer:'から',choices:['から','に','で','を'],explain:'受け取り元には「から」をつけます。'},
+  // ── と ──
+  {text:'友達___けんかした。',answer:'と',choices:['と','に','で','が'],explain:'相互の行為には「と」をつけます。'},
+  {text:'隣の人___話した。',answer:'と',choices:['と','に','で','が'],explain:'会話の相手には「と」をつけます。'},
+];
+
+const QB_N3 = [
+  {text:'兄___自転車___駅___向かった。',
+   blanks:[
+     {answer:'は',choices:['は','が','を','の'],explain:'「兄は」—話題には「は」をつけます。'},
+     {answer:'で',choices:['で','に','を','が'],explain:'「自転車で」—交通手段には「で」をつけます。'},
+     {answer:'に',choices:['に','で','を','が'],explain:'「駅に」—目的地には「に」をつけます。'},
+  ]},
+  {text:'私___スーパー___魚___買った。',
+   blanks:[
+     {answer:'は',choices:['は','が','を','の'],explain:'「私は」—話題には「は」をつけます。'},
+     {answer:'で',choices:['で','に','を','が'],explain:'「スーパーで」—場所には「で」をつけます。'},
+     {answer:'を',choices:['を','が','に','の'],explain:'「魚を」—対象には「を」をつけます。'},
+  ]},
+  {text:'子ども___廊下___友達___ぶつかった。',
+   blanks:[
+     {answer:'が',choices:['が','は','を','の'],explain:'「子どもが」—主体には「が」をつけます。'},
+     {answer:'で',choices:['で','に','を','が'],explain:'「廊下で」—場所には「で」をつけます。'},
+     {answer:'に',choices:['に','と','を','で'],explain:'「友達に」—ぶつかる相手には「に」をつけます。'},
+  ]},
+  {text:'父___電車___会社___通っている。',
+   blanks:[
+     {answer:'は',choices:['は','が','を','の'],explain:'「父は」—話題には「は」をつけます。'},
+     {answer:'で',choices:['で','に','を','が'],explain:'「電車で」—交通手段には「で」をつけます。'},
+     {answer:'に',choices:['に','で','を','が'],explain:'「会社に」—目的地には「に」をつけます。'},
+  ]},
+  {text:'祖父___畑___野菜___育てている。',
+   blanks:[
+     {answer:'は',choices:['は','が','を','の'],explain:'「祖父は」—話題には「は」をつけます。'},
+     {answer:'で',choices:['で','に','を','が'],explain:'「畑で」—場所には「で」をつけます。'},
+     {answer:'を',choices:['を','が','に','の'],explain:'「野菜を」—対象には「を」をつけます。'},
+  ]},
+  {text:'猫___ソファ___日向ぼっこ___している。',
+   blanks:[
+     {answer:'が',choices:['が','は','を','の'],explain:'「猫が」—主体には「が」をつけます。'},
+     {answer:'で',choices:['で','に','を','が'],explain:'「ソファで」—場所には「で」をつけます。'},
+     {answer:'を',choices:['を','が','に','の'],explain:'「日向ぼっこを」—対象には「を」をつけます。'},
+  ]},
+  {text:'母___包丁___野菜___刻んだ。',
+   blanks:[
+     {answer:'が',choices:['が','は','を','の'],explain:'「母が」—主体には「が」をつけます。'},
+     {answer:'で',choices:['で','に','を','が'],explain:'「包丁で」—道具には「で」をつけます。'},
+     {answer:'を',choices:['を','が','に','の'],explain:'「野菜を」—対象には「を」をつけます。'},
+  ]},
+  {text:'私___友達___バス停___待った。',
+   blanks:[
+     {answer:'は',choices:['は','が','を','の'],explain:'「私は」—話題には「は」をつけます。'},
+     {answer:'を',choices:['を','が','に','の'],explain:'「友達を」—待つ対象には「を」をつけます。'},
+     {answer:'で',choices:['で','に','を','が'],explain:'「バス停で」—場所には「で」をつけます。'},
+  ]},
+  {text:'彼女___自分の部屋___ギター___弾いた。',
+   blanks:[
+     {answer:'は',choices:['は','が','を','の'],explain:'「彼女は」—話題には「は」をつけます。'},
+     {answer:'で',choices:['で','に','を','が'],explain:'「部屋で」—場所には「で」をつけます。'},
+     {answer:'を',choices:['を','が','に','の'],explain:'「ギターを」—対象には「を」をつけます。'},
+  ]},
+  {text:'医者___患者___薬___渡した。',
+   blanks:[
+     {answer:'が',choices:['が','は','を','の'],explain:'「医者が」—主体には「が」をつけます。'},
+     {answer:'に',choices:['に','と','で','を'],explain:'「患者に」—渡す相手には「に」をつけます。'},
+     {answer:'を',choices:['を','が','に','の'],explain:'「薬を」—対象には「を」をつけます。'},
+  ]},
+  {text:'先輩___後輩___仕事___教えた。',
+   blanks:[
+     {answer:'が',choices:['が','は','を','の'],explain:'「先輩が」—主体には「が」をつけます。'},
+     {answer:'に',choices:['に','と','で','を'],explain:'「後輩に」—教える相手には「に」をつけます。'},
+     {answer:'を',choices:['を','が','に','の'],explain:'「仕事を」—対象には「を」をつけます。'},
+  ]},
+  {text:'祖母___孫___誕生日カード___送った。',
+   blanks:[
+     {answer:'が',choices:['が','は','を','の'],explain:'「祖母が」—主体には「が」をつけます。'},
+     {answer:'に',choices:['に','と','で','が'],explain:'「孫に」—送る相手には「に」をつけます。'},
+     {answer:'を',choices:['を','が','に','の'],explain:'「カードを」—対象には「を」をつけます。'},
+  ]},
+  {text:'私___駅___家___歩いて帰った。',
+   blanks:[
+     {answer:'は',choices:['は','が','を','の'],explain:'「私は」—話題には「は」をつけます。'},
+     {answer:'から',choices:['から','で','を','が'],explain:'「駅から」—出発点には「から」をつけます。'},
+     {answer:'まで',choices:['まで','を','が','の'],explain:'「家まで」—終点・到達範囲には「まで」をつけます。'},
+  ]},
+  {text:'田中さん___電話___妹___連絡した。',
+   blanks:[
+     {answer:'が',choices:['が','は','を','の'],explain:'「田中さんが」—主体には「が」をつけます。'},
+     {answer:'で',choices:['で','に','を','が'],explain:'「電話で」—手段には「で」をつけます。'},
+     {answer:'に',choices:['に','と','で','が'],explain:'「妹に」—連絡の相手には「に」をつけます。'},
+  ]},
+  {text:'彼___バイク___山道___走った。',
+   blanks:[
+     {answer:'は',choices:['は','が','を','の'],explain:'「彼は」—話題には「は」をつけます。'},
+     {answer:'で',choices:['で','に','を','が'],explain:'「バイクで」—交通手段には「で」をつけます。'},
+     {answer:'を',choices:['を','で','に','が'],explain:'「山道を」—移動する経路には「を」をつけます。'},
+  ]},
+  {text:'コーチ___選手___フォーム___直した。',
+   blanks:[
+     {answer:'が',choices:['が','は','を','の'],explain:'「コーチが」—主体には「が」をつけます。'},
+     {answer:'の',choices:['の','に','で','を'],explain:'「選手の」—所属・修飾には「の」をつけます。'},
+     {answer:'を',choices:['を','が','に','の'],explain:'「フォームを」—対象には「を」をつけます。'},
+  ]},
+  {text:'私___兄___誕生日プレゼント___贈った。',
+   blanks:[
+     {answer:'は',choices:['は','が','を','の'],explain:'「私は」—話題には「は」をつけます。'},
+     {answer:'に',choices:['に','と','で','が'],explain:'「兄に」—贈る相手には「に」をつけます。'},
+     {answer:'を',choices:['を','が','に','の'],explain:'「プレゼントを」—対象には「を」をつけます。'},
+  ]},
+  {text:'妹___駅前の花屋___アルバイト___している。',
+   blanks:[
+     {answer:'は',choices:['は','が','を','の'],explain:'「妹は」—話題には「は」をつけます。'},
+     {answer:'で',choices:['で','に','を','が'],explain:'「花屋で」—場所には「で」をつけます。'},
+     {answer:'を',choices:['を','が','に','の'],explain:'「アルバイトを」—対象には「を」をつけます。'},
+  ]},
+  {text:'子どもたち___校庭___鬼ごっこ___した。',
+   blanks:[
+     {answer:'が',choices:['が','は','を','の'],explain:'「子どもたちが」—主体には「が」をつけます。'},
+     {answer:'で',choices:['で','に','を','が'],explain:'「校庭で」—場所には「で」をつけます。'},
+     {answer:'を',choices:['を','が','に','の'],explain:'「鬼ごっこを」—対象には「を」をつけます。'},
+  ]},
+  {text:'店員___お客さん___笑顔___商品を説明した。',
+   blanks:[
+     {answer:'が',choices:['が','は','を','の'],explain:'「店員が」—主体には「が」をつけます。'},
+     {answer:'に',choices:['に','と','で','を'],explain:'「お客さんに」—説明する相手には「に」をつけます。'},
+     {answer:'で',choices:['で','に','を','が'],explain:'「笑顔で」—様子・方法には「で」をつけます。'},
+  ]},
+  {text:'私___先生___廊下___声をかけられた。',
+   blanks:[
+     {answer:'は',choices:['は','が','を','の'],explain:'「私は」—話題には「は」をつけます。'},
+     {answer:'に',choices:['に','と','で','を'],explain:'「先生に」—働きかけてくる相手には「に」をつけます。'},
+     {answer:'で',choices:['で','に','を','が'],explain:'「廊下で」—場所には「で」をつけます。'},
+  ]},
+];
+
+const QB_N4 = [
+  {text:'母___朝___台所___朝食___作った。',
+   blanks:[
+     {answer:'が',choices:['が','は','を','の'],explain:'「母が」—主体には「が」をつけます。'},
+     {answer:'に',choices:['に','で','は','が'],explain:'「朝に」—時点には「に」をつけます。'},
+     {answer:'で',choices:['で','に','を','が'],explain:'「台所で」—場所には「で」をつけます。'},
+     {answer:'を',choices:['を','が','に','の'],explain:'「朝食を」—対象には「を」をつけます。'},
+  ]},
+  {text:'父___日曜日___近所___公園___子どもを連れて行った。',
+   blanks:[
+     {answer:'は',choices:['は','が','を','の'],explain:'「父は」—話題には「は」をつけます。'},
+     {answer:'に',choices:['に','で','は','が'],explain:'「日曜日に」—時点には「に」をつけます。'},
+     {answer:'の',choices:['の','に','で','を'],explain:'「近所の」—修飾・所属には「の」をつけます。'},
+     {answer:'に',choices:['に','で','を','が'],explain:'「公園に」—目的地には「に」をつけます。'},
+  ]},
+  {text:'私___毎朝___駅前のカフェ___コーヒー___飲む。',
+   blanks:[
+     {answer:'は',choices:['は','が','を','の'],explain:'「私は」—話題には「は」をつけます。'},
+     {answer:'に',choices:['に','で','は','が'],explain:'「毎朝に」—繰り返しの時点には「に」をつけます。'},
+     {answer:'で',choices:['で','に','を','が'],explain:'「カフェで」—場所には「で」をつけます。'},
+     {answer:'を',choices:['を','が','に','の'],explain:'「コーヒーを」—対象には「を」をつけます。'},
+  ]},
+  {text:'祖母___毎週末___市場___包丁___魚をさばく。',
+   blanks:[
+     {answer:'は',choices:['は','が','を','の'],explain:'「祖母は」—話題には「は」をつけます。'},
+     {answer:'に',choices:['に','で','は','が'],explain:'「毎週末に」—繰り返しの時点には「に」をつけます。'},
+     {answer:'で',choices:['で','に','を','が'],explain:'「市場で」—場所には「で」をつけます。'},
+     {answer:'で',choices:['で','に','を','が'],explain:'「包丁で」—道具には「で」をつけます。'},
+  ]},
+  {text:'先生___授業中___生徒___この問題___質問した。',
+   blanks:[
+     {answer:'が',choices:['が','は','を','の'],explain:'「先生が」—主体には「が」をつけます。'},
+     {answer:'に',choices:['に','で','は','を'],explain:'「授業中に」—時点には「に」をつけます。'},
+     {answer:'に',choices:['に','と','で','を'],explain:'「生徒に」—質問する相手には「に」をつけます。'},
+     {answer:'を',choices:['を','が','に','の'],explain:'「問題を」—対象には「を」をつけます。'},
+  ]},
+  {text:'彼女___夕方___図書館___借りていた本___返した。',
+   blanks:[
+     {answer:'は',choices:['は','が','を','の'],explain:'「彼女は」—話題には「は」をつけます。'},
+     {answer:'に',choices:['に','で','は','が'],explain:'「夕方に」—時点には「に」をつけます。'},
+     {answer:'で',choices:['で','に','を','が'],explain:'「図書館で」—場所には「で」をつけます。'},
+     {answer:'を',choices:['を','が','に','の'],explain:'「本を」—対象には「を」をつけます。'},
+  ]},
+  {text:'兄___先月___仕事___転勤___大阪___行った。',
+   blanks:[
+     {answer:'は',choices:['は','が','を','の'],explain:'「兄は」—話題には「は」をつけます。'},
+     {answer:'に',choices:['に','で','は','が'],explain:'「先月に」—時点には「に」をつけます。'},
+     {answer:'の',choices:['の','で','を','に'],explain:'「仕事の」—修飾には「の」をつけます。'},
+     {answer:'に',choices:['に','で','を','が'],explain:'「大阪に」—移動の目的地には「に」をつけます。'},
+  ]},
+  {text:'私___夏休み___家族___沖縄___旅行した。',
+   blanks:[
+     {answer:'は',choices:['は','が','を','の'],explain:'「私は」—話題には「は」をつけます。'},
+     {answer:'に',choices:['に','で','は','が'],explain:'「夏休みに」—時点には「に」をつけます。'},
+     {answer:'と',choices:['と','に','で','を'],explain:'「家族と」—一緒に行動する相手には「と」をつけます。'},
+     {answer:'に',choices:['に','で','を','が'],explain:'「沖縄に」—目的地には「に」をつけます。'},
+  ]},
+  {text:'祖父___散歩___途中___公園___猫にエサをやる。',
+   blanks:[
+     {answer:'は',choices:['は','が','を','の'],explain:'「祖父は」—話題には「は」をつけます。'},
+     {answer:'の',choices:['の','に','で','を'],explain:'「散歩の」—修飾には「の」をつけます。'},
+     {answer:'で',choices:['で','に','を','が'],explain:'「途中で」—場所・場面には「で」をつけます。'},
+     {answer:'の',choices:['の','に','で','を'],explain:'「公園の」—所在を修飾するには「の」をつけます。'},
+  ]},
+  {text:'彼___昨日___友達___手紙___渡した。',
+   blanks:[
+     {answer:'は',choices:['は','が','を','の'],explain:'「彼は」—話題には「は」をつけます。'},
+     {answer:'に',choices:['に','で','は','が'],explain:'「昨日に」—時点には「に」をつけます。'},
+     {answer:'に',choices:['に','と','で','が'],explain:'「友達に」—渡す相手には「に」をつけます。'},
+     {answer:'を',choices:['を','が','に','の'],explain:'「手紙を」—対象には「を」をつけます。'},
+  ]},
+  {text:'母___先週末___娘___美容院___連れて行った。',
+   blanks:[
+     {answer:'は',choices:['は','が','を','の'],explain:'「母は」—話題には「は」をつけます。'},
+     {answer:'に',choices:['に','で','は','が'],explain:'「先週末に」—時点には「に」をつけます。'},
+     {answer:'を',choices:['を','が','に','の'],explain:'「娘を」—連れて行く対象には「を」をつけます。'},
+     {answer:'に',choices:['に','で','を','が'],explain:'「美容院に」—目的地には「に」をつけます。'},
+  ]},
+  {text:'先生___朝礼___生徒___明日___持ち物___伝えた。',
+   blanks:[
+     {answer:'が',choices:['が','は','を','の'],explain:'「先生が」—主体には「が」をつけます。'},
+     {answer:'で',choices:['で','に','を','が'],explain:'「朝礼で」—場所・場面には「で」をつけます。'},
+     {answer:'に',choices:['に','と','で','を'],explain:'「生徒に」—伝える相手には「に」をつけます。'},
+     {answer:'を',choices:['を','が','に','の'],explain:'「持ち物を」—対象には「を」をつけます。'},
+  ]},
+  {text:'私___昨晩___友達___電話___長い時間話した。',
+   blanks:[
+     {answer:'は',choices:['は','が','を','の'],explain:'「私は」—話題には「は」をつけます。'},
+     {answer:'に',choices:['に','で','は','が'],explain:'「昨晩に」—時点には「に」をつけます。'},
+     {answer:'と',choices:['と','に','で','を'],explain:'「友達と」—一緒に話す相手には「と」をつけます。'},
+     {answer:'で',choices:['で','に','を','が'],explain:'「電話で」—手段には「で」をつけます。'},
+  ]},
+  {text:'娘___今朝___学校___傘___忘れてきた。',
+   blanks:[
+     {answer:'は',choices:['は','が','を','の'],explain:'「娘は」—話題には「は」をつけます。'},
+     {answer:'に',choices:['に','で','は','が'],explain:'「今朝に」—時点には「に」をつけます。'},
+     {answer:'に',choices:['に','で','を','が'],explain:'「学校に」—置き忘れた場所には「に」をつけます。'},
+     {answer:'を',choices:['を','が','に','の'],explain:'「傘を」—対象には「を」をつけます。'},
+  ]},
+  {text:'弟___先週___友達___公園___キャッチボールをした。',
+   blanks:[
+     {answer:'は',choices:['は','が','を','の'],explain:'「弟は」—話題には「は」をつけます。'},
+     {answer:'に',choices:['に','で','は','が'],explain:'「先週に」—時点には「に」をつけます。'},
+     {answer:'と',choices:['と','に','で','を'],explain:'「友達と」—一緒に行動する相手には「と」をつけます。'},
+     {answer:'で',choices:['で','に','を','が'],explain:'「公園で」—場所には「で」をつけます。'},
+  ]},
+];
+
+// かき混ぜ語順
+// ルール：
+// ・文全体として自然な倒置文にする
+// ・解説は「なぜその助詞か」を文の意味から説明。「倒置しても変わらない」は不要
+// ・時間表現（昨日・今朝など）は文頭に置かない（不自然になるため）
+const QB_S3 = [
+  // 2空欄
+  {text:'包丁___魚___さばいた。',
+   blanks:[
+     {answer:'で',choices:['で','に','を','が'],explain:'「包丁で」—さばくときに使う道具なので「で」をつけます。'},
+     {answer:'を',choices:['を','が','に','の'],explain:'「魚を」—さばく対象なので「を」をつけます。'},
+  ]},
+  {text:'ハサミ___テープ___切った。',
+   blanks:[
+     {answer:'で',choices:['で','に','を','が'],explain:'「ハサミで」—切るときに使う道具なので「で」をつけます。'},
+     {answer:'を',choices:['を','が','に','の'],explain:'「テープを」—切る対象なので「を」をつけます。'},
+  ]},
+  {text:'ギター___彼___弾いている。',
+   blanks:[
+     {answer:'を',choices:['を','が','に','の'],explain:'「ギターを」—弾く対象なので「を」をつけます。'},
+     {answer:'が',choices:['が','は','を','の'],explain:'「彼が」—弾いている主体なので「が」をつけます。'},
+  ]},
+  {text:'公園___子ども___遊んでいる。',
+   blanks:[
+     {answer:'で',choices:['で','に','を','が'],explain:'「公園で」—遊ぶ場所なので「で」をつけます。'},
+     {answer:'が',choices:['が','は','を','の'],explain:'「子どもが」—遊んでいる主体なので「が」をつけます。'},
+  ]},
+  {text:'駅まで父___車___送ってくれた。',
+   blanks:[
+     {answer:'が',choices:['が','は','を','の'],explain:'「父が」—送ってくれた主体なので「が」をつけます。'},
+     {answer:'で',choices:['で','に','を','が'],explain:'「車で」—移動手段なので「で」をつけます。'},
+  ]},
+  // 3空欄
+  {text:'野菜___母___スーパー___買ってきた。',
+   blanks:[
+     {answer:'を',choices:['を','が','に','の'],explain:'「野菜を」—買う対象なので「を」をつけます。'},
+     {answer:'が',choices:['が','は','を','の'],explain:'「母が」—買ってきた主体なので「が」をつけます。'},
+     {answer:'で',choices:['で','に','を','が'],explain:'「スーパーで」—買った場所なので「で」をつけます。'},
+  ]},
+  {text:'大阪___兄___新幹線___行った。',
+   blanks:[
+     {answer:'に',choices:['に','で','を','が'],explain:'「大阪に」—移動の目的地なので「に」をつけます。'},
+     {answer:'は',choices:['は','が','を','の'],explain:'「兄は」—話題の主体なので「は」をつけます。'},
+     {answer:'で',choices:['で','に','を','が'],explain:'「新幹線で」—交通手段なので「で」をつけます。'},
+  ]},
+  {text:'答え___先生___黒板___書いた。',
+   blanks:[
+     {answer:'を',choices:['を','が','に','の'],explain:'「答えを」—書く対象なので「を」をつけます。'},
+     {answer:'が',choices:['が','は','を','の'],explain:'「先生が」—書いた主体なので「が」をつけます。'},
+     {answer:'に',choices:['に','で','を','が'],explain:'「黒板に」—書いた場所なので「に」をつけます。'},
+  ]},
+  {text:'夕食___父___台所___作ってくれた。',
+   blanks:[
+     {answer:'を',choices:['を','が','に','の'],explain:'「夕食を」—作る対象なので「を」をつけます。'},
+     {answer:'が',choices:['が','は','を','の'],explain:'「父が」—作ってくれた主体なので「が」をつけます。'},
+     {answer:'で',choices:['で','に','を','が'],explain:'「台所で」—作った場所なので「で」をつけます。'},
+  ]},
+  {text:'宿題___私___先生___見てもらった。',
+   blanks:[
+     {answer:'を',choices:['を','が','に','の'],explain:'「宿題を」—見てもらった対象なので「を」をつけます。'},
+     {answer:'は',choices:['は','が','を','の'],explain:'「私は」—話題の主体なので「は」をつけます。'},
+     {answer:'に',choices:['に','と','で','が'],explain:'「先生に」—お願いした相手なので「に」をつけます。'},
+  ]},
+  {text:'薬___医者___患者___出した。',
+   blanks:[
+     {answer:'を',choices:['を','が','に','の'],explain:'「薬を」—出す対象なので「を」をつけます。'},
+     {answer:'が',choices:['が','は','を','の'],explain:'「医者が」—出した主体なので「が」をつけます。'},
+     {answer:'に',choices:['に','と','で','が'],explain:'「患者に」—薬を渡す相手なので「に」をつけます。'},
+  ]},
+  {text:'仕事___先輩___後輩___教えた。',
+   blanks:[
+     {answer:'を',choices:['を','が','に','の'],explain:'「仕事を」—教える内容なので「を」をつけます。'},
+     {answer:'が',choices:['が','は','を','の'],explain:'「先輩が」—教えた主体なので「が」をつけます。'},
+     {answer:'に',choices:['に','と','で','が'],explain:'「後輩に」—教える相手なので「に」をつけます。'},
+  ]},
+  {text:'プレゼント___私___兄___贈った。',
+   blanks:[
+     {answer:'を',choices:['を','が','に','の'],explain:'「プレゼントを」—贈る対象なので「を」をつけます。'},
+     {answer:'は',choices:['は','が','を','の'],explain:'「私は」—話題の主体なので「は」をつけます。'},
+     {answer:'に',choices:['に','と','で','が'],explain:'「兄に」—贈る相手なので「に」をつけます。'},
+  ]},
+  {text:'カフェ___姉___友達___話した。',
+   blanks:[
+     {answer:'で',choices:['で','に','を','が'],explain:'「カフェで」—話した場所なので「で」をつけます。'},
+     {answer:'が',choices:['が','は','を','の'],explain:'「姉が」—話した主体なので「が」をつけます。'},
+     {answer:'と',choices:['と','に','を','で'],explain:'「友達と」—一緒に話した相手なので「と」をつけます。'},
+  ]},
+  {text:'山道___彼___バイク___走った。',
+   blanks:[
+     {answer:'を',choices:['を','で','に','が'],explain:'「山道を」—移動する経路なので「を」をつけます。'},
+     {answer:'は',choices:['は','が','を','の'],explain:'「彼は」—話題の主体なので「は」をつけます。'},
+     {answer:'で',choices:['で','に','を','が'],explain:'「バイクで」—交通手段なので「で」をつけます。'},
+  ]},
+  {text:'アドバイス___私___先輩___もらった。',
+   blanks:[
+     {answer:'を',choices:['を','が','に','の'],explain:'「アドバイスを」—もらった対象なので「を」をつけます。'},
+     {answer:'は',choices:['は','が','を','の'],explain:'「私は」—話題の主体なので「は」をつけます。'},
+     {answer:'から',choices:['から','に','で','が'],explain:'「先輩から」—アドバイスをもらった相手なので「から」をつけます。'},
+  ]},
+  {text:'手紙___祖母___孫___送った。',
+   blanks:[
+     {answer:'を',choices:['を','が','に','の'],explain:'「手紙を」—送る対象なので「を」をつけます。'},
+     {answer:'が',choices:['が','は','を','の'],explain:'「祖母が」—送った主体なので「が」をつけます。'},
+     {answer:'に',choices:['に','と','で','が'],explain:'「孫に」—送る相手なので「に」をつけます。'},
+  ]},
+  {text:'リビング___娘___父___連絡した。',
+   blanks:[
+     {answer:'で',choices:['で','に','を','が'],explain:'「リビングで」—連絡した場所なので「で」をつけます。'},
+     {answer:'が',choices:['が','は','を','の'],explain:'「娘が」—連絡した主体なので「が」をつけます。'},
+     {answer:'に',choices:['に','と','で','が'],explain:'「父に」—連絡した相手なので「に」をつけます。'},
+  ]},
+  {text:'廊下___子どもたち___走る___いけない。',
+   blanks:[
+     {answer:'を',choices:['を','で','に','が'],explain:'「廊下を」—走り回る空間・経路なので「を」をつけます。'},
+     {answer:'は',choices:['は','が','を','の'],explain:'「子どもたちは」—話題の主体なので「は」をつけます。'},
+  ]},
+];
+
+
+// ============================================================
+// STATE
+// ============================================================
+const BANKS = {n2:QB_N2, n3:QB_N3, n4:QB_N4, s3:QB_S3};
+let cfg={mode:'n2'};
+let sessionQ=[], curIdx=0, score=0;
+let curBlankIdx=0, blankAnswered=[], qCorrectCount=0;
+
+// ============================================================
+// START
+// ============================================================
+document.querySelectorAll('.mode-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('selected'));
+    btn.classList.add('selected');
+    cfg.mode=btn.dataset.mode;
+  });
+});
+
+function startQuiz(){
+  const pool=shuffleArr([...BANKS[cfg.mode]]);
+  sessionQ=pool.slice(0,10);
+  curIdx=0; score=0;
+  show('quiz-screen'); renderQ();
+}
+
+// ============================================================
+// RENDER
+// ============================================================
+function renderQ(){
+  document.getElementById('q-count').textContent=(curIdx+1)+' / 10';
+  document.getElementById('prog-fill').style.width=(curIdx/10*100)+'%';
+  document.getElementById('score-disp').textContent=score;
+
+  const q=sessionQ[curIdx];
+  if(!q.blanks){
+    // 1空欄
+    document.getElementById('sentence-display').innerHTML=buildHTML(q.text,[],0);
+    document.getElementById('cur-label').textContent='';
+    buildChoices(shuffleArr([...q.choices]),(chosen,btn)=>pickSingle(chosen,btn,q));
+  } else {
+    // 複数空欄
+    curBlankIdx=0; qCorrectCount=0;
+    blankAnswered=q.blanks.map(()=>null);
+    drawMulti(q);
+    buildChoices(shuffleArr([...q.blanks[0].choices]),(chosen,btn)=>pickMulti(chosen,btn,q));
+  }
+}
+
+// ─── 単一空欄 ───
+function pickSingle(chosen,btn,q){
+  document.querySelectorAll('.c-btn').forEach(b=>b.disabled=true);
+  const ok=chosen===q.answer;
+  if(ok){btn.classList.add('correct');score++;}
+  else{
+    btn.classList.add('wrong');
+    document.querySelectorAll('.c-btn').forEach(b=>{if(b.dataset.p===q.answer)b.classList.add('correct');});
+  }
+  const fullHTML=buildHTML(q.text,[q.answer],0,true);
+  setTimeout(()=>showFB(ok,q.explain,fullHTML,null),380);
+}
+
+// ─── 複数空欄 ───
+function drawMulti(q){
+  const filled=q.blanks.map((b,i)=>blankAnswered[i]!==null?b.answer:null);
+  document.getElementById('sentence-display').innerHTML=buildHTML(q.text,filled,curBlankIdx);
+  document.getElementById('cur-label').textContent=
+    numLabel(curBlankIdx+1)+'番目（全'+q.blanks.length+'か所）';
+}
+
+function pickMulti(chosen,btn,q){
+  document.querySelectorAll('.c-btn').forEach(b=>b.disabled=true);
+  const blank=q.blanks[curBlankIdx];
+  const ok=chosen===blank.answer;
+  if(ok){btn.classList.add('correct');qCorrectCount++;}
+  else{
+    btn.classList.add('wrong');
+    document.querySelectorAll('.c-btn').forEach(b=>{if(b.dataset.p===blank.answer)b.classList.add('correct');});
+  }
+  blankAnswered[curBlankIdx]=ok;
+
+  // 正答を埋めて再描画
+  const filled=q.blanks.map((b,i)=>blankAnswered[i]!==null?b.answer:null);
+  document.getElementById('sentence-display').innerHTML=buildHTML(q.text,filled,curBlankIdx,true);
+
+  const isLast=(curBlankIdx===q.blanks.length-1);
+  if(isLast && qCorrectCount===q.blanks.length) score++;
+  // FBには回答済みの空欄の正答のみ表示（未回答はまだ空欄のまま）
+  const fbFilled=q.blanks.map((b,i)=>blankAnswered[i]!==null?b.answer:null);
+  const fullHTML=buildHTML(q.text,fbFilled,-1,true);
+
+  setTimeout(()=>showFB(
+    ok, blank.explain, fullHTML,
+    isLast ? null : ()=>{
+      curBlankIdx++;
+      drawMulti(q);
+      buildChoices(
+        shuffleArr([...q.blanks[curBlankIdx].choices]),
+        (c,b)=>pickMulti(c,b,q)
+      );
+      show('quiz-screen');
+    }
+  ),380);
+}
+
+// ============================================================
+// HTML生成
+// text中の___ を空欄スパンに置換
+// filled: [null or 正答文字列] — null=未回答、文字列=表示
+// curBlank: アクティブな空欄index（-1=なし）
+// forFB: フィードバック画面用（全部filledとして表示）
+// ============================================================
+function buildHTML(text, filled, curBlank, forFB){
+  let i=0;
+  return text.replace(/___/g,()=>{
+    const ans=filled&&filled[i]!=null?filled[i]:null;
+    const isCur=(i===curBlank);
+    let html;
+    if(ans){
+      html='<span class="bl filled">'+h(ans)+'</span>';
+    } else {
+      html='<span class="bl'+(isCur?' active':'')+'"><span class="num">'+numLabel(i+1)+'</span></span>';
+    }
+    i++;
+    return html;
+  });
+}
+
+// ============================================================
+// FEEDBACK
+// ============================================================
+function showFB(ok,explain,fullHTML,continueCallback){
+  document.getElementById('fb-count').textContent=(curIdx+1)+' / 10';
+  document.getElementById('fb-prog-fill').style.width=((curIdx+1)/10*100)+'%';
+  document.getElementById('fb-score').textContent=score;
+  const card=document.getElementById('fb-card');
+  card.className=ok?'ok':'ng';
+  document.getElementById('fb-icon').textContent=ok?'○':'×';
+  document.getElementById('fb-label').textContent=ok?'正解':'不正解';
+  document.getElementById('fb-sentence').innerHTML=fullHTML;
+  document.getElementById('fb-explain').textContent=explain;
+  const btn=document.getElementById('next-btn');
+  if(continueCallback){
+    btn.textContent='次の空欄 →';
+    btn.onclick=continueCallback;
+  } else {
+    btn.textContent='次へ →';
+    btn.onclick=nextQ;
+  }
+  show('fb-screen');
+}
+
+function nextQ(){
+  curIdx++;
+  if(curIdx>=10) showResult();
+  else{show('quiz-screen');renderQ();}
+}
+
+// ============================================================
+// RESULT
+// ============================================================
+function showResult(){
+  const icons=['😢','😢','😕','😐','🙂','🙂','😊','😄','👍','🌟','🏆'];
+  const msgs=['もう一度がんばろう！','続けて練習しよう！','もう少しだ！','なかなか良い！','よくできました！','すばらしい！','ほぼ完璧！','完璧です！'];
+  const s=Math.min(score,10);
+  document.getElementById('r-icon').textContent=icons[s];
+  document.getElementById('r-score').textContent=s;
+  document.getElementById('r-of').textContent='/ 10';
+  document.getElementById('r-msg').textContent=msgs[Math.min(s,msgs.length-1)];
+  show('result-screen');
+}
+function retryQuiz(){startQuiz();}
+function goStart(){show('start-screen');}
+
+// ============================================================
+// UTILS
+// ============================================================
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function buildChoices(ch,onPick){
+  const el=document.getElementById('choices');el.innerHTML='';
+  ch.forEach(p=>{
+    const btn=document.createElement('button');
+    btn.className='c-btn';btn.textContent=p;btn.dataset.p=p;
+    btn.onclick=()=>onPick(p,btn);
+    el.appendChild(btn);
+  });
+}
+function shuffleArr(a){
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+  return a;
+}
+function h(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function numLabel(n){return['①','②','③','④','⑤'][n-1]||String(n);}
+</script>
+</body>
+</html>
