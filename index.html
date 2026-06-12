@@ -4,6 +4,21 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>助詞トレーニング</title>
+
+<!-- ===== PWA設定 ===== -->
+<!-- manifest.jsonを読み込む（アプリ名・アイコン・色の設定書） -->
+<link rel="manifest" href="manifest.json">
+
+<!-- iOSのステータスバーの色をアプリのアクセントカラーに -->
+<meta name="theme-color" content="#1A56A0">
+
+<!-- iPad/iPhoneのホーム画面追加対応 -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="助詞">
+
+<!-- iOSホーム画面用アイコン -->
+<link rel="apple-touch-icon" href="icon-192.png">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
@@ -818,5 +833,19 @@ function shuffleArr(a){
 function h(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function numLabel(n){return['①','②','③','④','⑤'][n-1]||String(n);}
 </script>
+
+<!-- ===== Service Worker登録 ===== -->
+<!-- Service Worker：オフラインでも動くようにする「裏方」プログラムを登録 -->
+<script>
+  if ('serviceWorker' in navigator) {
+    // ブラウザがService Workerに対応しているか確認してから登録
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then(() => console.log('Service Worker: 登録完了'))
+        .catch((err) => console.log('Service Worker: 登録失敗', err));
+    });
+  }
+</script>
+
 </body>
 </html>
